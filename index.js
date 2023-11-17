@@ -174,7 +174,7 @@ app.use(rateLimit({
 }));
 
 app.get('/', async function (_, res) { // just basic stuff. returns the home page
-    res.redirect('https://penguinmod.com');
+    res.redirect('https://snail-ide.js.org');
 });
 app.get('/robots.txt', async function (_, res) { // more basic stuff!!!!! returns robots.txt
     res.sendFile(path.join(__dirname, './robots.txt'));
