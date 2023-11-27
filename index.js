@@ -23,8 +23,8 @@ let globalOperationCounter = 0;
 const { encrypt, decrypt } = require("./utilities/encrypt.js");
 
 const UserManager = require("./classes/UserManager.js");
-// const UserStorage = require("./classes/UserStorage.js");
-// const StorageSpace = new UserStorage(32000000, 3); // 32 mb per data piece, 3 keys per container
+ //const UserStorage = require("./classes/UserStorage.js");
+ //const StorageSpace = new UserStorage(32000000, 3); // 32 mb per data piece, 3 keys per container
 UserManager.load(); // should prevent logouts
 
 const ProjectList = require("./classes/ProjectList.js");
@@ -38,14 +38,9 @@ const GlobalRuntimeConfig = new Database(`${__dirname}/globalsettings.json`);
 
 // UserManager.setCode('debug', 'your-mom');
 
-function EncryptArray(array) {
-    const na = [];
-    for (const value of array) {
-        const encrypted = encrypt(value);
-        na.push(encrypted);
-    }
-    return na;
-}
+
+app.use(express.json({ limit: '25mb' })); // Adjust the limit as needed
+app.use(express.urlencoded({ extended: true, limit: '25mb' })); // Adjust the limit
 function DecryptArray(array) {
     const na = [];
     for (const value of array) {
@@ -54,6 +49,14 @@ function DecryptArray(array) {
     }
     return na;
 }
+app.use((req, res, next) => {
+  // Allow requests from both 'https://snail-ide.vercel.app' and 'https://snail-ide.js.org'
+  res.header('Access-Control-Allow-Origin', 'https://snail-ide.vercel.app, https://snail-ide.js.org');
+  // You can also use '*' to allow any origin, but this is less secure
+  // res.header('Access-Control-Allow-Origin', '*');
+  next();
+});
+
 function SafeJSONParse(json) {
     try {
         return JSON.parse(json);
@@ -62,10 +65,11 @@ function SafeJSONParse(json) {
     }
 }
 
-const illegalWordsList = require("./illegalwords.js"); // js file that sets module.exports to an array of banned words
+const inList = require("./illegalwords.js"); // Assuming it exports an array of banned words
+
 const CheckForIllegalWording = (...args) => {
     for (const argument of args) {
-        for (const illegalWord of illegalWordsList) {
+        for (const illegalWord of inList) {  // Use the correct variable name here
             const checking = Cast.toString(argument)
                 .toLowerCase()
                 .replace(/[ _\-!?.#/\\,'"@$%^&*\(\)]+/gmi, '');
@@ -76,6 +80,7 @@ const CheckForIllegalWording = (...args) => {
     }
     return false;
 };
+
 
 function Deprecation(res, reason = "") { // if an endpoint is deprecated, use this.
     res.status(400);
@@ -174,7 +179,7 @@ app.use(rateLimit({
 }));
 
 app.get('/', async function (_, res) { // just basic stuff. returns the home page
-    res.redirect('https://snail-ide.js.org');
+    res.redirect('https://snail-ide.vercel.app/');
 });
 app.get('/robots.txt', async function (_, res) { // more basic stuff!!!!! returns robots.txt
     res.sendFile(path.join(__dirname, './robots.txt'));
@@ -571,7 +576,7 @@ app.get('/api/users/login', async function (req, res) { // login with scratch
         //       thank you cors, you finally did something useful
 
         // malicious APPS could, but at that point your just :trollface:d so :idk_man:
-        const invalidRedirect = response.redirect !== 'https://projects.penguinmod.com/api/users/login';
+        const invalidRedirect = response.redirect !== 'https://backend.nmsderp.repl.co/api/users/login';
         if ((!response.valid) || (invalidRedirect)) {
             res.status(400);
             res.header("Content-Type", 'application/json');
@@ -606,7 +611,7 @@ app.get('/api/users/loginLocal', async function (req, res) { // login with local
 
         // malicious APPS could, but at that point your just :trollface:d so :idk_man:
         const invalidRedirect =
-            response.redirect !== 'https://projects.penguinmod.com/api/users/loginLocal'
+            response.redirect !== 'https://backend.nmsderp.repl.co/api/users/loginLocal'
             && response.redirect !== 'http://localhost:8080/api/users/loginLocal';
         if ((!response.valid) || (invalidRedirect)) {
             res.status(400);
@@ -1115,7 +1120,7 @@ app.post('/api/users/ban', async function (req, res) {
             author: {
                 name: String(bannedUser).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(bannedUser).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(bannedUser).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(bannedUser).substring(0, 50))
             },
             timestamp: new Date().toISOString()
         }]
@@ -1191,7 +1196,7 @@ app.post('/api/users/unban', async function (req, res) {
             author: {
                 name: String(bannedUser).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(bannedUser).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(bannedUser).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(bannedUser).substring(0, 50))
             },
             timestamp: new Date().toISOString()
         }]
@@ -1253,7 +1258,7 @@ app.get('/api/users/report', async function (req, res) {
             author: {
                 name: String(reportedUser).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(reportedUser).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(reportedUser).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(reportedUser).substring(0, 50))
             },
             timestamp: new Date().toISOString()
         }]
@@ -1412,7 +1417,7 @@ app.get('/api/projects/report', async function (req, res) {
             author: {
                 name: String(packet.username).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(packet.username).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(packet.username).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(packet.username).substring(0, 50))
             },
             timestamp: new Date().toISOString()
         }]
@@ -1593,7 +1598,7 @@ app.post('/api/users/dispute', async function (req, res) {
             author: {
                 name: String(packet.username).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(packet.username).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(packet.username).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(packet.username).substring(0, 50))
             },
             timestamp: new Date().toISOString()
         }]
@@ -1683,7 +1688,7 @@ app.post('/api/users/disputeRespond', async function (req, res) {
             author: {
                 name: String(packet.username).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(packet.username).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(packet.username).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(packet.username).substring(0, 50))
             },
             timestamp: new Date().toISOString()
         }]
@@ -1771,14 +1776,14 @@ app.get('/api/projects/approve', async function (req, res) {
     }
     {
         // post log
-        const projectImage = String(`https://projects.penguinmod.com/api/pmWrapper/iconUrl?id=${project.id}&rn=${Math.round(Math.random() * 9999999)}`);
+        const projectImage = String(`https://backend.nmsderp.repl.co/api/pmWrapper/iconUrl?id=${project.id}&rn=${Math.round(Math.random() * 9999999)}`);
         const body = JSON.stringify({
             content: `"${project.name}" was approved by ${packet.approver}`,
             embeds: [{
                 title: `${project.name} was approved`,
                 color: 0x00ff00,
                 image: { url: projectImage },
-                url: "https://studio.penguinmod.com/#" + project.id,
+                url: "https://snail-ide.js.org/#" + project.id,
                 fields: [
                     {
                         name: "Approved by",
@@ -1788,7 +1793,7 @@ app.get('/api/projects/approve', async function (req, res) {
                 author: {
                     name: String(project.owner).substring(0, 50),
                     icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(project.owner).substring(0, 50)),
-                    url: String("https://penguinmod.com/profile?user=" + String(project.owner).substring(0, 50))
+                    url: String("https://snail-ide.vercel.app/profile?user=" + String(project.owner).substring(0, 50))
                 },
                 timestamp: new Date().toISOString()
             }]
@@ -1804,7 +1809,7 @@ app.get('/api/projects/approve', async function (req, res) {
     res.header("Content-Type", 'application/json');
     res.json({ "success": true });
     if (Cast.toBoolean(req.query.webhook) === false) return;
-    const projectImage = String(`https://projects.penguinmod.com/api/pmWrapper/iconUrl?id=${project.id}&rn=${Math.round(Math.random() * 9999999)}`);
+    const projectImage = String(`https://backend.nmsderp.repl.co/api/pmWrapper/iconUrl?id=${project.id}&rn=${Math.round(Math.random() * 9999999)}`);
     const body = JSON.stringify({
         content: `A project was ${isUpdated ? "updated" : (isRemix ? "remixed" : "approved")}!`,
         embeds: [{
@@ -1812,11 +1817,11 @@ app.get('/api/projects/approve', async function (req, res) {
             description: String(project.instructions + "\n\n" + project.notes).substring(0, 2040),
             image: { url: projectImage },
             color: (isUpdated ? 14567657 : (isRemix ? 6618880 : 41440)),
-            url: String("https://studio.penguinmod.com/#" + String(project.id)),
+            url: String("https://snail-ide.js.org/#" + String(project.id)),
             author: {
                 name: String(project.owner).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(project.owner).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(project.owner).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(project.owner).substring(0, 50))
             }
         }]
     });
@@ -1894,7 +1899,7 @@ app.post('/api/projects/reject', async function (req, res) {
             author: {
                 name: String(project.owner).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(project.owner).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(project.owner).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(project.owner).substring(0, 50))
             },
             timestamp: new Date().toISOString()
         }]
@@ -2211,7 +2216,7 @@ app.get('/api/projects/feature', async function (req, res) {
     res.header("Content-Type", 'application/json');
     res.json({ "success": true });
     if (Cast.toBoolean(req.query.webhook) === false) return;
-    const projectImage = String(`https://projects.penguinmod.com/api/pmWrapper/iconUrl?id=${project.id}&rn=${Math.round(Math.random() * 9999999)}`);
+    const projectImage = String(`https://backend.nmsderp.repl.co/api/pmWrapper/iconUrl?id=${project.id}&rn=${Math.round(Math.random() * 9999999)}`);
     const projectTitle = String(project.name).substring(0, 250);
     const body = JSON.stringify({
         content: `⭐ **${projectTitle}** was **featured**! ⭐`,
@@ -2219,11 +2224,11 @@ app.get('/api/projects/feature', async function (req, res) {
             title: projectTitle,
             image: { url: projectImage },
             color: 16771677,
-            url: String("https://studio.penguinmod.com/#" + String(project.id)),
+            url: String("https://snail-ide.js.org/#" + String(project.id)),
             author: {
                 name: String(project.owner).substring(0, 50),
                 icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(project.owner).substring(0, 50)),
-                url: String("https://penguinmod.com/profile?user=" + String(project.owner).substring(0, 50))
+                url: String("https://snail-ide.vercel.app/profile?user=" + String(project.owner).substring(0, 50))
             }
         }]
     });
@@ -2322,7 +2327,7 @@ app.post('/api/projects/toggleProjectVote', async function (req, res) {
         }
         if (project.featureWebhookSent !== true) {
             project.featureWebhookSent = true;
-            const projectImage = String(`https://projects.penguinmod.com/api/pmWrapper/iconUrl?id=${project.id}&rn=${Math.round(Math.random() * 9999999)}`);
+            const projectImage = String(`https://backend.nmsderp.repl.co/api/pmWrapper/iconUrl?id=${project.id}&rn=${Math.round(Math.random() * 9999999)}`);
             const projectTitle = String(project.name).substring(0, 250);
             const body = JSON.stringify({
                 content: `⭐ **${projectTitle}** has been **community featured!** ⭐`,
@@ -2330,11 +2335,11 @@ app.post('/api/projects/toggleProjectVote', async function (req, res) {
                     title: projectTitle,
                     image: { url: projectImage },
                     color: 16771677,
-                    url: String("https://studio.penguinmod.com/#" + String(project.id)),
+                    url: String("https://snail-ide.js.org/#" + String(project.id)),
                     author: {
                         name: String(project.owner).substring(0, 50),
                         icon_url: String("https://trampoline.turbowarp.org/avatars/by-username/" + String(project.owner).substring(0, 50)),
-                        url: String("https://penguinmod.com/profile?user=" + String(project.owner).substring(0, 50))
+                        url: String("https://snail-ide.vercel.app/profile?user=" + String(project.owner).substring(0, 50))
                     }
                 }]
             });
@@ -2580,7 +2585,7 @@ app.post('/api/projects/update', async function (req, res) {
                     }
                 }
             }
-            fs.writeFile(`./projects/uploaded/p${id}.pmp`, buffer, (err) => {
+            fs.writeFile(`./projects/uploaded/p${id}.snail`, buffer, (err) => {
                 if (err) console.error(err);
             });
         }
@@ -2912,7 +2917,7 @@ app.post('/api/projects/publish', async function (req, res) {
     const id = _id;
 
     // we already checked earlier if this was a valid project
-    fs.writeFile(`./projects/uploaded/p${id}.pmp`, project, (err) => {
+    fs.writeFile(`./projects/uploaded/p${id}.snail`, project, (err) => {
         if (err) console.error(err);
     });
     const image = Cast.dataURLToBuffer(packet.image);
