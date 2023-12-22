@@ -51,7 +51,7 @@ function DecryptArray(array) {
 }
 app.use((req, res, next) => {
   // Allow requests from both 'https://snail-ide.vercel.app' and 'https://snail-ide.js.org'
-  res.header('Access-Control-Allow-Origin', 'https://snail-ide.vercel.app, https://snail-ide.js.org');
+  res.header('Access-Control-Allow-Origin', 'https://snail-ide.vercel.app/', 'https://snail-ide.js.org');
   // You can also use '*' to allow any origin, but this is less secure
   // res.header('Access-Control-Allow-Origin', '*');
   next();
@@ -65,11 +65,11 @@ function SafeJSONParse(json) {
     }
 }
 
-const inList = require("./illegalwords.js"); // Assuming it exports an array of banned words
+const inList = require("./illegalwords.js");
 
 const CheckForIllegalWording = (...args) => {
     for (const argument of args) {
-        for (const illegalWord of inList) {  // Use the correct variable name here
+        for (const illegalWord of inList) {
             const checking = Cast.toString(argument)
                 .toLowerCase()
                 .replace(/[ _\-!?.#/\\,'"@$%^&*\(\)]+/gmi, '');
@@ -80,6 +80,11 @@ const CheckForIllegalWording = (...args) => {
     }
     return false;
 };
+
+// Example usage:
+const containsIllegalWord = CheckForIllegalWording("Some text with word2", "Another text without illegal words");
+console.log(containsIllegalWord); // Output: true or false based on whether any illegal word is found
+
 
 
 function Deprecation(res, reason = "") { // if an endpoint is deprecated, use this.
@@ -1919,7 +1924,7 @@ app.post('/api/projects/reject', async function (req, res) {
         disputable: true
     });
     db.delete(String(packet.id));
-    const projectFilePath = `./projects/uploaded/p${packet.id}.pmp`;
+    const projectFilePath = `./projects/uploaded/p${packet.id}.snail`;
     const projectImagePath = `./projects/uploadedImages/p${packet.id}.png`;
     const backupProjectMetaPath = `./projects/backup/proj${packet.id}.json`;
     fs.writeFile(backupProjectMetaPath, JSON.stringify(project, null, 4), 'utf8', (err) => {
@@ -2017,7 +2022,7 @@ app.post('/api/projects/restoreRejected', async function (req, res) {
     const backupProjectImagePath = `./projects/backup/proj${projectId}.png`;
     const backupProjectMetaPath = `./projects/backup/proj${projectId}.json`;
 
-    const restoredProjectFilePath = `./projects/uploaded/p${projectId}.pmp`;
+    const restoredProjectFilePath = `./projects/uploaded/p${projectId}.snail`;
     const restoredProjectImagePath = `./projects/uploadedImages/p${projectId}.png`;
     // PROJECT FILE
     fs.readFile(backupProjectFilePath, (err, data) => {
@@ -2415,7 +2420,7 @@ app.get('/api/projects/delete', async function (req, res) {
         }
     }
     db.delete(String(packet.id));
-    fs.unlink(`./projects/uploaded/p${packet.id}.pmp`, err => {
+    fs.unlink(`./projects/uploaded/p${packet.id}.snail`, err => {
         if (err) console.log("failed to delete project data for", packet.id, ";", err);
     })
     fs.unlink(`./projects/uploadedImages/p${packet.id}.png`, err => {
@@ -3008,7 +3013,7 @@ app.get('/api/projects/getPublished', async function (req, res) {
     if (db.has(String(req.query.id))) {
         const project = db.get(String(req.query.id));
         if (String(req.query.type) == "file") {
-            fs.readFile(`./projects/uploaded/p${project.id}.pmp`, (err, data) => {
+            fs.readFile(`./projects/uploaded/p${project.id}.snail`, (err, data) => {
                 if (err) {
                     res.status(500);
                     res.header("Content-Type", 'text/plain');
